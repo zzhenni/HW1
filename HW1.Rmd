@@ -1,0 +1,170 @@
+---
+title: "Homework Assignment 1"
+author: "Jane Zhou"
+date: 'Assigned: Oct 24, 2020, Due Sun Nov 01, 2020 11:59PM'
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+## Import Data
+
+First thing we will do is to **import data**.
+
+```{r, cache=TRUE}
+# Use read.csv to read the CSV file
+nyc <- read.csv("nycflights.csv")
+
+```
+
+## Clean Data
+
+We will now need to clean this data.
+
+```{r}
+# Delete the column named "X"
+nyc$X <- NULL
+
+# Recode columns as factors as needed
+nyc$carrier <- as.factor(nyc$carrier)
+nyc$flight <- as.factor(nyc$flight)
+nyc$tailnum <- as.factor(nyc$tailnum)
+nyc$origin <- as.factor(nyc$origin)
+nyc$dest <- as.factor(nyc$dest)
+
+```
+
+## Data Exploration
+
+a) How many airlines are there? (Hint: `levels` and `length` can be useful here)
+```{r}
+# Find the different carrier levels and count them
+num_airlines <- length(levels(nyc$carrier))
+```
+- **There are `r num_airlines` airlines.**
+
+b) How many flights were there by the airline with code `OO`? (Hint: `nrow` can be useful here along with logical indexing)
+```{r}
+# Filter data by carrier OO and count the number of records
+carrierOO <- nrow(nyc[nyc$carrier == "OO", ])
+```
+- **There were `r carrierOO` flights by the airline with code `OO`.**
+
+c) How long is the shortest flight out of any NYC airport? (Hint: `min` can be useful, remember to handle `NA` values)
+```{r}
+# Remove NA values and find the minimum air_time
+shortest_flight <- min(nyc$air_time, na.rm = TRUE)
+```
+- **The shortest flight out of any NYC airport is `r shortest_flight` minutes.**
+
+d) How many flights were there by United Airlines (code: UA) on Jan 12th 2013?
+```{r}
+# Count records filtered by carrier, month, and day (all data is from the year 2013)
+UA20130112 <- nrow(nyc[nyc$carrier == "UA" & nyc$month == 1 & nyc$day == 12, ])
+```
+- **On January 12, 2013, there were `r UA20130112` flights by United Airlines.**
+
+## Arrival Delay
+
+a) What was the average arrival delay for all airports and all airlines combined in Jan 2013? 
+```{r}
+# Extract all records from January 2013
+nyc_Jan <- nyc[nyc$month == 1, ]
+
+# Remove NA values and find the average arr_delay
+avg_Jan <- mean(nyc_Jan$arr_delay, na.rm = TRUE)
+```
+- **The average arrival delay for all airports and all airlines combined in January 2013 is `r avg_Jan` minutes.**
+
+b) Whats was the median arrival delay for all airports and all airlines combined in Jan 2013?
+```{r}
+# Remove NA values and find the median arr_delay 
+median_Jan <- median(nyc_Jan$arr_delay, na.rm = TRUE)
+```
+- **The median arrival delay for all airports and all airlines combined in January 2013 is `r median_Jan` minutes.**
+
+c) Based on your answers to the two questions above, what can you say about the distribution of arrival delays? Provide your answer in a text paragraph form.
+
+- **The median arrival delay is much less than the average, which means that while there are equal numbers of flights with arrival delays less than and greater than -3 minutes, there are flights with much longer arrival delays that pull the average up to 6.13 minutes.**
+
+## Airline Performance
+
+Lets see if all airlines are equally terrible as far as flight arrival delays are concerned. For this question you will have to make sure that airline column is coded as a factor.
+
+a) Calculate average arrival delays by airline (Hint: look up the command `tapply`)
+```{r}
+# Use tapply function
+arr_delay_by_airline <- round(tapply(nyc$arr_delay, nyc$carrier, mean, na.rm = TRUE), 2)
+
+# Show results
+arr_delay_by_airline
+```
+
+b) Draw a Bar Plot of Average Arrival Delays for all the Airlines (Hint: command for making a Bar Plot is simply `barplot`)
+```{r}
+# Create sorted barplot of decreasing average arr_delay by airline
+barplot(sort(arr_delay_by_airline, decreasing = TRUE))
+```
+
+c) Which airline has the highest average arrival delay? Which airline has the smallest average arrival delay? Are there airlines that actually have negative average delay? Provide answer to this question in a text paragraph form using **inline R code**.
+```{r}
+# Find name of the airline with the maximum average arr_delay
+max_delay_airline <- names(arr_delay_by_airline[arr_delay_by_airline == max(arr_delay_by_airline)])
+```
+- **The airline with the highest average arrival delay is: `r max_delay_airline`.**
+```{r}
+# Find name of the airline with the minimum average arr_delay
+min_delay_airline <- names(arr_delay_by_airline[arr_delay_by_airline == min(arr_delay_by_airline)])
+```
+- **The airline with the smallest average arrival delay is: `r min_delay_airline`.**
+```{r}
+# Find names of the airlines with average arr_delay less than 0
+negative_delay_airlines <- names(arr_delay_by_airline[arr_delay_by_airline < 0])
+```
+- **Yes; `r negative_delay_airlines` are the airlines that actually have negative average delay.**
+
+## Air Gain
+
+a) Create a new column named airgain such that airgain = (departure delay - arrival delay) : this is the amount of delay a flight made up while in air.
+```{r}
+nyc$airgain <- nyc$dep_delay - nyc$arr_delay
+```
+
+b) Explore airgain data - calculate suitable descriptive statistics and appropriate graphics to better understand this data. This part is open ended - you do what you feel works best for you.
+```{r}
+# Average airgain
+mean(nyc$airgain, na.rm = TRUE)
+
+# Median airgain
+median(nyc$airgain, na.rm = TRUE)
+
+# Maximum airgain
+max(nyc$airgain, na.rm = TRUE)
+
+# Proportion of flights with positive airgain
+nrow(nyc[nyc$airgain > 0, ])/nrow(nyc)
+```
+
+
+c) Do airlines actually gain any time when in air on average? 
+- **Yes. Average and median airgain are both positive values. The highest amount of airgain is 109 minutes, and 68.6% of all flights gain time when in the air.**
+
+d) Calculate average airgain for different airlines - which airlines do a better job, which do a worse job? 
+```{r}
+avg_airgain_by_airline <- round(tapply(nyc$airgain, nyc$carrier, mean, na.rm = TRUE), 2)
+sort(avg_airgain_by_airline, decreasing = TRUE)
+```
+```{r}
+good_job_airlines <- names(avg_airgain_by_airline[avg_airgain_by_airline > 0])
+```
+- **`r good_job_airlines` are doing a better job because average airgains are positive.**
+```{r}
+bad_job_airlines <- names(avg_airgain_by_airline[avg_airgain_by_airline < 0])
+```
+- **`r bad_job_airlines` are doing a worse job because average airgains are negative.**
+
+e) Build a graphic of average airgain for different airlines sorted by airgain. We want to graphically visualize which airlines are good at "catching up" when in air and which airlines actually lose time further after taking off.
+```{r}
+barplot(sort(avg_airgain_by_airline, decreasing = TRUE))
+```
